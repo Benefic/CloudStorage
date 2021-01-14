@@ -8,6 +8,13 @@
 .idea/**/dictionaries
 .idea/**/shelf
 
+######
+.idea
+*.iml
+*/target
+*.log
+*.log.gz
+
 # Generated files
 .idea/**/contentModel.xml
 
@@ -64,7 +71,7 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-# Editor-based Rest Client
+# Editor-based Rest ru.benefic.cloudStorage.client.Client
 .idea/httpRequests
 
 # Android studio 3.1+ serialized cache file

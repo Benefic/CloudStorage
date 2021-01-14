@@ -4,7 +4,8 @@
 
 package ru.benefic.cloudStorage.server;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.benefic.cloudStorage.server.storage.StorageServer;
 
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.io.IOException;
 public class Server {
 
     private static final int DEFAULT_PORT = 8189;
-    private static final Logger Log = Logger.getLogger(Server.class);
+    private static final Logger Log = LogManager.getLogger(Server.class);
 
     public static void main(String[] args) {
         int port = DEFAULT_PORT;
