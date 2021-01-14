@@ -56,7 +56,6 @@ public class Client {
                 isEnd = true;
             }
             Command filePart = Command.filePartTransferCommand(file.getName(), buffer, isEnd);
-            Log.info(filePart);
             outputStream.writeObject(filePart);
             outputStream.flush();
             outputStream.reset();

@@ -4,8 +4,6 @@
 
 package ru.benefic.cloudStorage.common.commands;
 
-import java.util.Arrays;
-
 public class FilePart implements CommandData {
     private final String fileName;
     private final boolean isEnd;
@@ -35,22 +33,14 @@ public class FilePart implements CommandData {
         return data;
     }
 
-//    @Override
-//    public String toString() {
-//        return "FilePart{" +
-//                "fileName='" + fileName + '\'' +
-//                ", isEnd=" + isEnd +
-//                ", data length=" + data.length +
-//                '}';
-//    }
-
-
     @Override
     public String toString() {
         return "FilePart{" +
                 "fileName='" + fileName + '\'' +
                 ", isEnd=" + isEnd +
-                ", data=" + Arrays.toString(data) +
+                ", data length=" + data.length +
                 '}';
     }
+
+
 }
