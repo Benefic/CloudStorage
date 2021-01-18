@@ -8,12 +8,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +28,8 @@ public class NioServer {
     private final ByteBuffer buffer = ByteBuffer.allocate(5);
     private final int port = 8189;
     private final Path serverPath = Paths.get("serverDir");
+    private Path currentPath = serverPath;
+    private SocketChannel channel;
 
     public NioServer() throws IOException {
         Log.info("Запуск сервера на порту " + port);
@@ -44,7 +44,7 @@ public class NioServer {
             Set<SelectionKey> keys = selector.selectedKeys();
             Iterator<SelectionKey> iterator = keys.iterator();
             while (iterator.hasNext()) {
-                Log.info("Биндинг ключа...");
+                Log.info("Селект ключа в итераторе...");
                 SelectionKey key = iterator.next();
                 iterator.remove();
                 if (key.isAcceptable()) {
@@ -64,7 +64,7 @@ public class NioServer {
     }
 
     private void handleRead(SelectionKey key) throws IOException {
-        SocketChannel channel = (SocketChannel) key.channel();
+        channel = (SocketChannel) key.channel();
         StringBuilder msg = new StringBuilder();
         while (channel.read(buffer) > 0) {
             buffer.flip();
@@ -73,15 +73,74 @@ public class NioServer {
             }
             buffer.clear();
         }
-        String command = msg.toString().replaceAll("[\n|\r]", "");
-        Log.info("Получена команда: " + command);
-        if (command.equals("ls")) {
-            String files = Files.list(serverPath)
-                    .map(path -> path.getFileName().toString())
-                    .collect(Collectors.joining(", "));
-            files += "\n";
-            channel.write(ByteBuffer.wrap(files.getBytes(StandardCharsets.UTF_8)));
+        String userData = msg.toString().replaceAll("[\n|\r]", "");
+        String[] userDataContent = userData.split(" ", 2);
+        String command = userDataContent[0];
+        Log.info("Получена команда: " + userData);
+        switch (command) {
+            case "ls":
+                String files = Files.list(currentPath)
+                        .map(path -> path.getFileName().toString())
+                        .collect(Collectors.joining(", "));
+                writeToChannel(files);
+                break;
+            case "mkdir":
+                if (checkArgument(userDataContent)) {
+                    Files.createDirectory(Paths.get(currentPath.toString(), userDataContent[1]));
+                }
+                break;
+            case "touch":
+                if (checkArgument(userDataContent)) {
+                    Files.createFile(Paths.get(currentPath.toString(), userDataContent[1]));
+                }
+                break;
+            case "cd":
+                if (checkArgument(userDataContent)) {
+                    currentPath = Paths.get(currentPath.toString(), userDataContent[1]);
+                }
+                break;
+            case "cat":
+                if (checkArgument(userDataContent)) {
+                    Path filePath = currentPath.resolve(userDataContent[1]);
+                    if (Files.exists(filePath)) {
+                        try (RandomAccessFile file = new RandomAccessFile(filePath.toString(), "r")) {
+                            FileChannel fileChannel = file.getChannel();
+                            ByteBuffer fileBuffer = ByteBuffer.allocate(512);
+                            while (fileChannel.read(fileBuffer) > 0) {
+                                fileBuffer.flip();
+                                writeToChannel(fileBuffer);
+                                fileBuffer.clear();
+                            }
+                            fileChannel.close();
+                            // перенос строки после вывода файла
+                            writeToChannel("");
+                        }
+                    } else {
+                        writeToChannel("File not found!");
+                    }
+                }
+                break;
+            default:
+                writeToChannel(userData);
+                break;
         }
+    }
+
+    private boolean checkArgument(String[] userDataContent) throws IOException {
+        if (userDataContent.length < 2) {
+            writeToChannel("Invalid argument");
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private void writeToChannel(ByteBuffer byteBuffer) throws IOException {
+        channel.write(byteBuffer);
+    }
+
+    private void writeToChannel(String msg) throws IOException {
+        writeToChannel(ByteBuffer.wrap((msg + "\n\r").getBytes(StandardCharsets.UTF_8)));
     }
 
     private void handleAccept(SelectionKey key) throws IOException {
